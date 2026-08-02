@@ -12,6 +12,9 @@ const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 const loading = document.querySelector<HTMLElement>('#loading')!;
 const hint = document.querySelector<HTMLElement>('#hint')!;
 const status = document.querySelector<HTMLElement>('#status')!;
+const sensorDialog = document.querySelector<HTMLElement>('#sensor-dialog')!;
+const sensorAllow = document.querySelector<HTMLButtonElement>('#sensor-allow')!;
+const sensorSkip = document.querySelector<HTMLButtonElement>('#sensor-skip')!;
 
 const scene = new CicadaScene(canvas);
 const input = new MotionInput();
@@ -22,6 +25,58 @@ const fixedStep = 1 / 120;
 let accumulator = 0;
 let lastFrame = performance.now();
 let active = false;
+
+/**
+ * iOS 13+：展示激活弹窗。弹窗按钮的点击是一个新的用户手势，
+ * 必须在其中同步调用 enable()，requestPermission() 才会被系统接受。
+ * 返回是否成功获得运动传感器权限。
+ */
+function requestMotionPermission(): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    sensorDialog.hidden = false;
+    let resolved = false;
+    const close = () => {
+      sensorDialog.hidden = true;
+      sensorAllow.removeEventListener('pointerup', onAllow);
+      sensorAllow.removeEventListener('touchend', onAllow);
+      sensorSkip.removeEventListener('click', onSkip);
+    };
+    const finish = (granted: boolean) => {
+      if (resolved) return;
+      resolved = true;
+      close();
+      resolve(granted);
+    };
+    const onAllow = async (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      sensorAllow.disabled = true;
+      sensorSkip.disabled = true;
+      try {
+        // 必须先直接触发系统权限请求，不能先关闭自定义弹窗。
+        const granted = await input.requestPermission();
+        if (granted) {
+          await input.enable();
+          try {
+            await sound.unlock();
+          } catch (error) {
+            console.warn('Audio unlock unavailable:', error);
+          }
+        }
+        finish(granted);
+      } catch (error) {
+        console.warn('Motion input unavailable:', error);
+        finish(false);
+      }
+    };
+    const onSkip = () => {
+      finish(false);
+    };
+    sensorAllow.addEventListener('pointerup', onAllow);
+    sensorAllow.addEventListener('touchend', onAllow, { passive: false });
+    sensorSkip.addEventListener('click', onSkip);
+  });
+}
 
 scene.load((ratio) => {
   loading.textContent = `正在加载模型 ${Math.round(ratio * 100)}%`;
@@ -40,15 +95,21 @@ scene.load((ratio) => {
 
 startButton.addEventListener('click', async () => {
   try {
-    await sound.unlock();
+    let granted = false;
+    if (input.requiresPermissionPrompt) {
+      // iOS：先弹出激活弹窗，由用户手动点击授权陀螺仪。
+      granted = await requestMotionPermission();
+    } else {
+      await sound.unlock();
+      try {
+        granted = await input.requestPermission();
+        if (granted) await input.enable();
+      } catch (error) {
+        console.warn('Motion input unavailable:', error);
+      }
+    }
     await sound.load();
     sound.playDrop();
-    let granted = false;
-    try {
-      granted = await input.enable();
-    } catch (error) {
-      console.warn('Motion input unavailable:', error);
-    }
     active = true;
     startButton.parentElement?.classList.add('hidden');
     if (granted) status.textContent = '摄像头与运动传感器已启用';

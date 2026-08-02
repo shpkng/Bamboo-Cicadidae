@@ -1,23 +1,35 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-    <meta name="theme-color" content="#111315" />
-    <title>知了摇摇乐</title>
-  </head>
-  <body>
-    <main id="app">
-      <video id="camera" aria-hidden="true" autoplay muted playsinline></video>
-      <canvas id="scene" aria-label="知了模型"></canvas>
-      <section id="gate" class="gate">
-        <h1 id="slogan" class="slogan">1000万以内最好的游戏</h1>
-        <p id="loading" class="loading">正在加载模型 0%</p>
-        <button id="start" type="button" disabled>摇摇领先</button>
-        <p id="hint" class="hint">加载完成后，允许运动传感器与声音权限。</p>
-      </section>
-      <p id="status" class="status" aria-live="polite" style="color: black;"></p>
-    </main>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#111315" />
+  <title>知了摇摇乐</title>
+</head>
+
+<body>
+  <main id="app">
+    <video id="camera" aria-hidden="true" autoplay muted playsinline></video>
+    <canvas id="scene" aria-label="知了模型"></canvas>
+    <section id="gate" class="gate">
+      <h1 id="slogan" class="slogan">1000万以内最好的游戏</h1>
+      <p id="loading" class="loading">正在加载模型 0%</p>
+      <button id="start" type="button" disabled>摇摇领先</button>
+      <p id="hint" class="hint">加载完成后，允许运动传感器与声音权限。</p>
+    </section>
+    <div id="sensor-dialog" class="sensor-dialog" hidden>
+      <div class="sensor-dialog-card">
+        <div class="sensor-dialog-icon" aria-hidden="true">📳</div>
+        <h2 id="sensor-title">激活运动传感器</h2>
+        <p id="sensor-text">iOS 需要您手动允许访问陀螺仪才能体验摇一摇玩法。点击下方按钮后，请在系统弹窗中选择「允许」。</p>
+        <button id="sensor-allow" type="button">允许访问陀螺仪</button>
+        <button id="sensor-skip" type="button" class="secondary">暂不使用</button>
+      </div>
+    </div>
+    <p id="status" class="status" aria-live="polite" style="color: black;"></p>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
