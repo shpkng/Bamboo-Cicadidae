@@ -28,6 +28,13 @@ export class MotionInput {
   private readonly smoothing = 0.12;
 
   async enable(): Promise<boolean> {
+    window.addEventListener('devicemotion', this.onMotion, { passive: true });
+    window.addEventListener('deviceorientation', this.onOrientation, { passive: true });
+    this.enabled = true;
+    return true;
+  }
+
+  async requestPermission(): Promise<boolean> {
     const motionEvent = window.DeviceMotionEvent as unknown as MotionPermissionEvent | undefined;
     const orientationEvent = window.DeviceOrientationEvent as unknown as OrientationPermissionEvent | undefined;
     if (!motionEvent) return false;
@@ -39,10 +46,17 @@ export class MotionInput {
       const result = await orientationEvent.requestPermission();
       if (result !== 'granted') return false;
     }
-    window.addEventListener('devicemotion', this.onMotion, { passive: true });
-    window.addEventListener('deviceorientation', this.onOrientation, { passive: true });
-    this.enabled = true;
     return true;
+  }
+
+  /**
+   * iOS 13+ 的 DeviceMotionEvent 暴露 requestPermission，必须由用户点击
+   * （同步手势回调）触发，否则系统会静默拒绝。true 表示需要先弹出
+   * 激活弹窗，让用户在弹窗按钮（新的用户手势）中手动授权。
+   */
+  get requiresPermissionPrompt(): boolean {
+    const motionEvent = window.DeviceMotionEvent as unknown as MotionPermissionEvent | undefined;
+    return typeof motionEvent?.requestPermission === 'function';
   }
 
   get supported(): boolean {
